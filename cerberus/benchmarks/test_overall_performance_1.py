@@ -149,11 +149,11 @@ def test_overall_performance_1(benchmark):
 
 
 def generate_sample_document_1() -> dict:
-    result = {}
-    for i in (1, 2, 3, 4, 5):
-        if randrange(100):
-            result[f"field_{i}"] = globals()[f"generate_document_1_field_{i}"]()
-    return result
+    return {
+        f"field_{i}": globals()[f"generate_document_1_field_{i}"]()
+        for i in (1, 2, 3, 4, 5)
+        if randrange(100)
+    }
 
 
 def generate_document_1_field_1() -> dict:
@@ -168,7 +168,7 @@ def generate_document_1_field_1() -> dict:
 
 
 def generate_document_1_field_2() -> dict:
-    x = "*" if not randrange(50) else " "
+    x = " " if randrange(50) else "*"
     result: Dict[str, Union[int, str, None]] = {"field_21": x + str(randrange(100)) + x}
 
     if randrange(100):
@@ -180,11 +180,12 @@ def generate_document_1_field_2() -> dict:
 
 
 def generate_document_1_field_3() -> dict:
-    result: Dict[str, Optional[list]] = {}
-    if randrange(100):
-        result["field_31"] = [randrange(2) for _ in range(randrange(20))]
-    else:
-        result["field_31"] = None
+    result: Dict[str, Optional[list]] = {
+        "field_31": [randrange(2) for _ in range(randrange(20))]
+        if randrange(100)
+        else None
+    }
+
     if randrange(100):
         result["field_32"] = [
             choice((0, 0, 0, 0, 0, 0, 0, 0, "", None)),

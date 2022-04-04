@@ -8,9 +8,7 @@ if sys.version_info < (3, 7):
     from typing import _Union, Union
 
     def get_type_args(tp):
-        if isinstance(tp, (GenericAlias, _Union)):
-            return tp.__args__
-        return ()
+        return tp.__args__ if isinstance(tp, (GenericAlias, _Union)) else ()
 
     def get_type_origin(tp):
         if isinstance(tp, GenericAlias):
@@ -27,14 +25,10 @@ elif sys.version_info < (3, 8):
     from typing import ForwardRef, _GenericAlias as GenericAlias
 
     def get_type_args(tp):
-        if isinstance(tp, GenericAlias):
-            return tp.__args__
-        return ()
+        return tp.__args__ if isinstance(tp, GenericAlias) else ()
 
     def get_type_origin(tp):
-        if isinstance(tp, GenericAlias):
-            return tp.__origin__
-        return None
+        return tp.__origin__ if isinstance(tp, GenericAlias) else None
 
     def has_concrete_args(tp):
         return not tp.__parameters__

@@ -127,7 +127,7 @@ product_schema = {
         'maxlength': 20,
         'required': False,
         'nullable': True,
-        'coerce': (empty_str_to_null, lambda s: str(s)[0:19]),
+        'coerce': (empty_str_to_null, lambda s: str(s)[:19]),
         'default': '',
     },
     'code': {
@@ -135,11 +135,21 @@ product_schema = {
         'minlength': 0,
         'maxlength': 10,
         'required': True,
-        'coerce': (empty_str_to_null, lambda s: str(s)[0:9]),
+        'coerce': (empty_str_to_null, lambda s: str(s)[:9]),
         'default': '',
     },
-    'barCodes': {'type': 'list', 'required': True, 'nullable': True, 'default': []},
-    'alcoCodes': {'type': 'list', 'required': True, 'nullable': True, 'default': []},
+    'barCodes': {
+        'type': 'list',
+        'required': True,
+        'nullable': True,
+        'default': [],
+    },
+    'alcoCodes': {
+        'type': 'list',
+        'required': True,
+        'nullable': True,
+        'default': [],
+    },
     'alcoholByVolume': {
         'type': ['float', 'string'],
         'required': True,

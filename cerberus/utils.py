@@ -59,10 +59,7 @@ def mapping_to_frozenset(schema: Mapping) -> frozenset:
 
 
 def quote_string(value):
-    if isinstance(value, str):
-        return '"%s"' % value
-    else:
-        return value
+    return '"%s"' % value if isinstance(value, str) else value
 
 
 class readonly_classproperty(property):
