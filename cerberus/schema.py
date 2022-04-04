@@ -70,9 +70,7 @@ class SchemaValidator(UnconcernedValidator):
                 self._error(path, 'All dependencies must be a hashable type.')
 
     def _check_with_items(self, field, value):
-        self._check_with_schema(
-            field, {i: rules_set for i, rules_set in enumerate(value)}
-        )
+        self._check_with_schema(field, dict(enumerate(value)))
 
     def _check_with_rulesset(self, field, value):
         # resolve schema registry reference
@@ -83,7 +81,7 @@ class SchemaValidator(UnconcernedValidator):
                 self.known_rules_set_refs.add(value)
             definition = self.target_validator.rules_set_registry.get(value)
             if definition is None:
-                self._error(field, "Rules set definition '{}' not found.".format(value))
+                self._error(field, f"Rules set definition '{value}' not found.")
                 return
             else:
                 value = definition
@@ -115,7 +113,7 @@ class SchemaValidator(UnconcernedValidator):
             definition = self.target_validator.schema_registry.get(value)
             if definition is None:
                 path = self.document_path + (field,)
-                self._error(path, "Schema definition '{}' not found.".format(value))
+                self._error(path, f"Schema definition '{value}' not found.")
         else:
             definition = value
 
@@ -137,16 +135,15 @@ class SchemaValidator(UnconcernedValidator):
 
     def _check_with_type_names(self, field, value):
         if value not in self.target_validator.types_mapping:
-            self._error(field, 'Unsupported type name: {}'.format(value))
+            self._error(field, f'Unsupported type name: {value}')
 
     def _expand_rules_set_refs(self, schema):
-        result = {}
-        for k, v in schema.items():
-            if isinstance(v, str):
-                result[k] = self.target_validator.rules_set_registry.get(v)
-            else:
-                result[k] = v
-        return result
+        return {
+            k: self.target_validator.rules_set_registry.get(v)
+            if isinstance(v, str)
+            else v
+            for k, v in schema.items()
+        }
 
     def _validate_logical(self, rule, field, value):
         """{'allowed': ('allof', 'anyof', 'noneof', 'oneof')}"""

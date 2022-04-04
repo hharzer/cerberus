@@ -50,11 +50,13 @@ def assert_fail(
 
     actual_errors = validator._errors
 
-    assert not (error is not None and errors is not None)
-    assert not (errors is not None and child_errors is not None), (
-        'child_errors can only be tested in ' 'conjunction with the error parameter'
+    assert error is None or errors is None
+    assert errors is None or child_errors is None, (
+        'child_errors can only be tested in '
+        'conjunction with the error parameter'
     )
-    assert not (child_errors is not None and error is None)
+
+    assert child_errors is None or error is not None
     if error is not None:
         assert len(actual_errors) == 1
         assert_has_error(actual_errors, *error)

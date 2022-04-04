@@ -39,7 +39,7 @@ def test_minlength_and_maxlength_with_list(schema):
 def test_maxlength_fails(schema):
     field = 'a_string'
     max_length = schema[field]['maxlength']
-    value = "".join(choice(ascii_lowercase) for i in range(max_length + 1))
+    value = "".join(choice(ascii_lowercase) for _ in range(max_length + 1))
     assert_fail(
         document={field: value},
         error=(
@@ -71,7 +71,7 @@ def test_maxlength_with_bytestring_fails(schema):
 def test_minlength_fails(schema):
     field = 'a_string'
     min_length = schema[field]['minlength']
-    value = "".join(choice(ascii_lowercase) for i in range(min_length - 1))
+    value = "".join(choice(ascii_lowercase) for _ in range(min_length - 1))
     assert_fail(
         document={field: value},
         error=(

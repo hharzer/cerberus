@@ -98,8 +98,7 @@ def normalize_rulesset(rules: RulesSet) -> RulesSet:
 
     rules = dict(rules)
 
-    rules_with_whitespace = [x for x in rules if " " in x]
-    if rules_with_whitespace:
+    if rules_with_whitespace := [x for x in rules if " " in x]:
         for rule in rules_with_whitespace:
             rules[rule.replace(" ", "_")] = rules.pop(rule)
 
@@ -113,7 +112,7 @@ def normalize_rulesset(rules: RulesSet) -> RulesSet:
 
     if "type" in rules:
         constraint = rules["type"]
-        if not (isinstance(constraint, Iterable) and not isinstance(constraint, str)):
+        if not isinstance(constraint, Iterable) or isinstance(constraint, str):
             rules["type"] = (constraint,)
 
         _expand_generic_type_aliases(rules)
@@ -360,9 +359,7 @@ class ValidatorMeta(type):
     def __init__(cls, name, bases, namespace):
         def attributes_with_prefix(prefix):
             return tuple(
-                x[len(prefix) + 2 :]
-                for x in dir(cls)
-                if x.startswith('_' + prefix + '_')
+                x[len(prefix) + 2 :] for x in dir(cls) if x.startswith(f'_{prefix}_')
             )
 
         super().__init__(name, bases, namespace)
@@ -401,8 +398,8 @@ class ValidatorMeta(type):
         cls.validation_rules = normalize_schema(validation_rules)
         cls.rules = ChainMap(cls.normalization_rules, cls.validation_rules)
 
-    def __get_rule_schema(mcls, method_name):
-        docstring = getattr(mcls, method_name).__doc__
+    def __get_rule_schema(self, method_name):
+        docstring = getattr(self, method_name).__doc__
         if docstring is None:
             result = {}
         else:
@@ -729,9 +726,9 @@ class UnconcernedValidator(metaclass=ValidatorMeta):
         result = getattr(self, methodname, None)
         if result is None:
             raise RuntimeError(
-                "There's no handler for '{}' in the '{}' "
-                "domain.".format(rule, domain)
+                f"There's no handler for '{rule}' in the '{domain}' domain."
             )
+
         return result
 
     def _drop_nodes_from_errorpaths(
@@ -989,13 +986,13 @@ class UnconcernedValidator(metaclass=ValidatorMeta):
     # FIXME the returned method has the correct docstring, but doesn't appear
     #       in the API docs
     @readonly_classproperty
-    def types(cls) -> Tuple[str, ...]:
+    def types(self) -> Tuple[str, ...]:
         """
         The constraints that can be used for the 'type' rule.
 
         Type: A tuple of strings.
         """
-        return tuple(cls.types_mapping)
+        return tuple(self.types_mapping)
 
     # Document processing
 
@@ -1059,10 +1056,7 @@ class UnconcernedValidator(metaclass=ValidatorMeta):
         self.document = self.__normalize_mapping(document, self.schema)
         self.error_handler.end(self)
         self._errors.sort()
-        if self._errors and not always_return_document:
-            return None
-        else:
-            return self.document
+        return None if self._errors and not always_return_document else self.document
 
     def __normalize_mapping(self, mapping, schema):
         mapping = mapping.copy()
@@ -1230,8 +1224,8 @@ class UnconcernedValidator(metaclass=ValidatorMeta):
         rules, values = schema[field]['items'], mapping[field]
         if len(rules) != len(values):
             return
-        schema = {k: v for k, v in enumerate(rules)}
-        document = {k: v for k, v in enumerate(values)}
+        schema = dict(enumerate(rules))
+        document = dict(enumerate(values))
         validator = self._get_child_validator(
             document_crumb=field, schema_crumb=(field, 'items'), schema=schema
         )
@@ -1245,7 +1239,7 @@ class UnconcernedValidator(metaclass=ValidatorMeta):
     def __normalize_sequence_per_itemsrules(self, field, mapping, schema):
         constraint = schema[field]['itemsrules']
         schema = {k: constraint for k in range(len(mapping[field]))}
-        document = {k: v for k, v in enumerate(mapping[field])}
+        document = dict(enumerate(mapping[field]))
         validator = self._get_child_validator(
             document_crumb=field, schema_crumb=(field, 'itemsrules'), schema=schema
         )
@@ -1435,18 +1429,15 @@ class UnconcernedValidator(metaclass=ValidatorMeta):
         self.validate(
             document=document, schema=schema, update=update, normalize=normalize
         )
-        if self._errors and not always_return_document:
-            return None
-        else:
-            return self.document
+        return None if self._errors and not always_return_document else self.document
 
     def __validate_unknown_fields(self, field):
         if self.allow_unknown:
-            value = self.document[field]
             if isinstance(self.allow_unknown, (Mapping, str)):
                 # validate that unknown fields matches the schema
                 # for unknown_fields
                 schema_crumb = 'allow_unknown' if self.is_child else '__allow_unknown__'
+                value = self.document[field]
                 validator = self._get_child_validator(
                     schema_crumb=schema_crumb, schema={field: self.allow_unknown}
                 )
@@ -1495,12 +1486,10 @@ class UnconcernedValidator(metaclass=ValidatorMeta):
     def _validate_allowed(self, allowed_values, field, value):
         """{'type': 'container_but_not_string'}"""
         if isinstance(value, Iterable) and not isinstance(value, str):
-            unallowed = tuple(x for x in value if x not in allowed_values)
-            if unallowed:
+            if unallowed := tuple(x for x in value if x not in allowed_values):
                 self._error(field, errors.UNALLOWED_VALUES, unallowed)
-        else:
-            if value not in allowed_values:
-                self._error(field, errors.UNALLOWED_VALUE, value)
+        elif value not in allowed_values:
+            self._error(field, errors.UNALLOWED_VALUE, value)
 
     def _validate_check_with(self, checks, field, value):
         """
@@ -1529,12 +1518,11 @@ class UnconcernedValidator(metaclass=ValidatorMeta):
         if not isinstance(expected_values, Iterable) or isinstance(
             expected_values, str
         ):
-            expected_values = set((expected_values,))
+            expected_values = {expected_values}
         else:
             expected_values = set(expected_values)
 
-        missing_values = expected_values - set(value)
-        if missing_values:
+        if missing_values := expected_values - set(value):
             self._error(field, errors.MISSING_MEMBERS, missing_values)
 
     def _validate_dependencies(self, dependencies, field, value):
@@ -1571,7 +1559,7 @@ class UnconcernedValidator(metaclass=ValidatorMeta):
             if wanted_field_value in dependency_values:
                 validated_dependencies_counter += 1
             else:
-                error_info.update({dependency_name: wanted_field_value})
+                error_info[dependency_name] = wanted_field_value
 
         if validated_dependencies_counter != len(dependencies):
             self._error(field, errors.DEPENDENCIES_FIELD_VALUE, error_info)
@@ -1631,19 +1619,17 @@ class UnconcernedValidator(metaclass=ValidatorMeta):
             if value in forbidden_values:
                 self._error(field, errors.FORBIDDEN_VALUE, value)
         elif isinstance(value, Iterable):
-            forbidden = set(value) & set(forbidden_values)
-            if forbidden:
+            if forbidden := set(value) & set(forbidden_values):
                 self._error(field, errors.FORBIDDEN_VALUES, list(forbidden))
-        else:
-            if value in forbidden_values:
-                self._error(field, errors.FORBIDDEN_VALUE, value)
+        elif value in forbidden_values:
+            self._error(field, errors.FORBIDDEN_VALUE, value)
 
     def _validate_items(self, items, field, values):
         """{'type': 'Sequence', 'check_with': 'items'}"""
         if len(items) != len(values):
             self._error(field, errors.ITEMS_LENGTH, len(items), len(values))
         else:
-            schema = {i: definition for i, definition in enumerate(items)}
+            schema = dict(enumerate(items))
 
             validator = self._get_child_validator(
                 document_crumb=field,
@@ -1651,9 +1637,7 @@ class UnconcernedValidator(metaclass=ValidatorMeta):
                 schema=schema,
             )
             if not validator(
-                {i: value for i, value in enumerate(values)},
-                update=self.update,
-                normalize=False,
+                dict(enumerate(values)), update=self.update, normalize=False
             ):
                 self._error(field, errors.ITEMS, validator._errors)
 
@@ -1673,9 +1657,7 @@ class UnconcernedValidator(metaclass=ValidatorMeta):
             schema=schema,
             allow_unknown=self.allow_unknown,
         )
-        validator(
-            {i: v for i, v in enumerate(value)}, update=self.update, normalize=False
-        )
+        validator(dict(enumerate(value)), update=self.update, normalize=False)
 
         if validator._errors:
             self._drop_nodes_from_errorpaths(validator._errors, [], [2])
@@ -1834,17 +1816,21 @@ class UnconcernedValidator(metaclass=ValidatorMeta):
 
         :param document: The document being validated.
         """
-        required = set(
+        required = {
             field
             for field, definition in self.schema.items()
-            if self._resolve_rules_set(definition).get('required', self.require_all)
-        )
+            if self._resolve_rules_set(definition).get(
+                'required', self.require_all
+            )
+        }
+
         required -= self._unrequired_by_excludes
-        missing = required - set(
+        missing = required - {
             field
             for field in document
             if document.get(field) is not None or not self.ignore_none_values
-        )
+        }
+
 
         for field in missing:
             self._error(field, errors.REQUIRED_FIELD)
@@ -1852,7 +1838,7 @@ class UnconcernedValidator(metaclass=ValidatorMeta):
         # At least one field from self._unrequired_by_excludes should be present in
         # document.
         if self._unrequired_by_excludes:
-            fields = set(field for field in document if document.get(field) is not None)
+            fields = {field for field in document if document.get(field) is not None}
             if self._unrequired_by_excludes.isdisjoint(fields):
                 for field in self._unrequired_by_excludes - fields:
                     self._error(field, errors.REQUIRED_FIELD)
@@ -1898,9 +1884,8 @@ class UnconcernedValidator(metaclass=ValidatorMeta):
                     value, type_definition.excluded_types
                 ):
                     return
-            else:
-                if isinstance(value, _type):
-                    return
+            elif isinstance(value, _type):
+                return
 
         self._error(field, errors.TYPE)
         self._drop_remaining_rules()

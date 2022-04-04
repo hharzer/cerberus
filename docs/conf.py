@@ -19,8 +19,9 @@ import alabaster
 
 if sys.version_info < (3, 6):
     raise RuntimeError(
-        'Requires Python 3.6 or later, running on %s atm.' % '.'.join(sys.version_info)
+        f"Requires Python 3.6 or later, running on {'.'.join(sys.version_info)} atm."
     )
+
 
 
 module_spec = importlib.util.spec_from_file_location(

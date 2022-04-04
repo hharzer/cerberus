@@ -273,11 +273,11 @@ def test_basic_error_handler():
     _errors, ref = [], {}
 
     _errors.append(ValidationError(['foo'], ['foo'], 0x63, 'readonly', True, None, ()))
-    ref.update({'foo': [handler.messages[0x63]]})
+    ref['foo'] = [handler.messages[0x63]]
     assert handler(_errors) == ref
 
     _errors.append(ValidationError(['bar'], ['foo'], 0x42, 'min', 1, 2, ()))
-    ref.update({'bar': [handler.messages[0x42].format(constraint=1)]})
+    ref['bar'] = [handler.messages[0x42].format(constraint=1)]
     assert handler(_errors) == ref
 
     _errors.append(
@@ -285,7 +285,7 @@ def test_basic_error_handler():
             ['zap', 'foo'], ['zap', 'schema', 'foo'], 0x24, 'type', 'string', True, ()
         )
     )
-    ref.update({'zap': [{'foo': [handler.messages[0x24].format(constraint='string')]}]})
+    ref['zap'] = [{'foo': [handler.messages[0x24].format(constraint='string')]}]
     assert handler(_errors) == ref
 
     _errors.append(

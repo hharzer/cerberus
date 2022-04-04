@@ -193,10 +193,7 @@ class ValidationError:
     @property
     def field(self) -> Optional[FieldName]:
         """Field of the contextual mapping, possibly :obj:`None`."""
-        if self.document_path:
-            return self.document_path[-1]
-        else:
-            return None
+        return self.document_path[-1] if self.document_path else None
 
     @property
     def is_group_error(self) -> bool:
@@ -256,10 +253,7 @@ class ErrorTreeNode(MutableMapping):
         self, item: Union[ErrorDefinition, FieldName]
     ) -> Union[Optional[ValidationError], Optional['ErrorTreeNode']]:
         if isinstance(item, ErrorDefinition):
-            for error in self.errors:
-                if item.code == error.code:
-                    return error
-            return None
+            return next((error for error in self.errors if item.code == error.code), None)
         else:
             return self.descendants.get(item)
 
@@ -273,7 +267,7 @@ class ErrorTreeNode(MutableMapping):
         self.descendants[key] = value
 
     def __str__(self):
-        return str(self.errors) + ',' + str(self.descendants)
+        return f'{str(self.errors)},{str(self.descendants)}'
 
     @property
     def depth(self) -> int:
@@ -302,7 +296,7 @@ class ErrorTreeNode(MutableMapping):
             node.add(error)
 
     def _path_of_(self, error):
-        return getattr(error, self.tree_type + '_path')
+        return getattr(error, f'{self.tree_type}_path')
 
 
 class ErrorTree(ErrorTreeNode):
@@ -333,10 +327,7 @@ class ErrorTree(ErrorTreeNode):
     def fetch_errors_from(self, path: DocumentPath) -> ErrorList:
         """Returns all errors for a particular path."""
         node = self.fetch_node_from(path)
-        if node is None:
-            return ErrorList()
-        else:
-            return node.errors
+        return ErrorList() if node is None else node.errors
 
     def fetch_node_from(self, path: DocumentPath) -> ErrorTreeNode:
         """Returns a node for a path."""
@@ -539,10 +530,7 @@ class BasicErrorHandler(BaseErrorHandler):
                 self.tree[field] = [{}]
             subtree = self.tree[field][-1]
 
-            if subtree:
-                new = self.__class__(tree=copy(subtree))
-            else:
-                new = self.__class__()
+            new = self.__class__(tree=copy(subtree)) if subtree else self.__class__()
             new._insert_error(path[1:], node)
             subtree.update(new.tree)
 
@@ -575,12 +563,12 @@ class BasicErrorHandler(BaseErrorHandler):
                     )
 
     def _purge_empty_dicts(self, error_list):
-        subtree = error_list[-1]
-        if not error_list[-1]:
-            error_list.pop()
-        else:
+        if subtree := error_list[-1]:
             for key in subtree:
                 self._purge_empty_dicts(subtree[key])
+
+        else:
+            error_list.pop()
 
     def _rewrite_error_path(self, error, offset=0):
         """
@@ -607,7 +595,7 @@ class BasicErrorHandler(BaseErrorHandler):
             if not definition_errors:
                 continue
 
-            nodename = '%s definition %s' % (error.rule, i)
+            nodename = f'{error.rule} definition {i}'
             path = error.document_path + (nodename,)
 
             for child_error in definition_errors:
